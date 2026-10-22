@@ -1,0 +1,30 @@
+# Node / Electron
+node_modules/
+dist/
+out/
+release/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Segredos / autenticação (NÃO commitar)
+cookies.txt
+*.cookies
+.env
+.env.*
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+
+# Scripts locais
+setup.sh
+
+# Editor
+.vscode/
+.idea/

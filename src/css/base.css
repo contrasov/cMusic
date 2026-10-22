@@ -1,0 +1,38 @@
+/* cMusic — base: variáveis, reset e fundação */
+
+:root {
+  --bg: #000000;
+  --surface: #1a1a1a;
+  --surface-2: #222222;
+  --hover: #262626;
+  --border: #262626;
+  --text: #f5f5f5;
+  --text-dim: #8a8a8a;
+  --accent: #f3fdad;
+  --accent-text: #111111;
+  --accent-glow: rgba(243, 253, 173, 0.25);
+  --rail-w: 78px;
+  --rail-w-open: 198px;
+  --queue-w: 312px;
+  --island-h: 64px;
+  --radius-pill: 32px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Roboto", "Cantarell", sans-serif;
+  overflow: hidden;
+  user-select: none;
+}
+
+body { display: flex; flex-direction: column; }
+
+.hidden { display: none !important; }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: #2e2e2e; border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }

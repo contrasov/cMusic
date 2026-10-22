@@ -1,0 +1,27 @@
+{
+  "name": "cmusic",
+  "version": "0.2.0",
+  "description": "cMusic — reprodutor do YouTube Music para Linux: Electron + Python (ytmusicapi)",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "backend": "python3 backend/server.py",
+    "test": "echo \"sem testes ainda\" && exit 0"
+  },
+  "keywords": [
+    "youtube-music",
+    "ytmusicapi",
+    "electron",
+    "player"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  },
+  "dependencies": {
+    "mpris-service": "^2.1.2"
+  }
+}
