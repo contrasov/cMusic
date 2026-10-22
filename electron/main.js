@@ -119,7 +119,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 560,
     title: "cMusic",
-    icon: path.join(ROOT, "assets", "icon-512.png"),
+    icon: path.join(ROOT, "assets", "icon.png"),
     backgroundColor: "#000000",
     autoHideMenuBar: true,
     webPreferences: {
