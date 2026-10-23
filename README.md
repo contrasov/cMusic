@@ -56,6 +56,22 @@ cd cMusic
 ./setup.sh          # creates the Python .venv and installs dependencies
 ```
 
+### Installed app (KDE launcher)
+
+`./setup.sh install` does **not** install a copy of the app — it only creates launchers
+that run the project straight from this folder:
+
+- Icon at `~/.local/share/icons/hicolor/512x512/apps/cmusic.png`
+- Wrapper `~/.local/bin/cmusic` → `cd` into the repo and run `npm start`
+- Menu entry `~/.local/share/applications/cmusic.desktop`
+
+**Updates are automatic:** edits/pulls in this repo are picked up on the next launch —
+just open **cMusic** from the KDE menu (or run `cmusic`). No reinstall needed.
+
+Re-run `./setup.sh` only when dependencies change (requirements/npm). Re-run
+`./setup.sh install` only to refresh the icon/shortcut. If you move or delete this
+folder, the menu entry breaks — run `./setup.sh install` again to regenerate it.
+
 ## Usage
 
 ```bash
