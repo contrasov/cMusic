@@ -1,7 +1,7 @@
 /* cMusic — boot, sidebar, busca e atalhos */
 import { $ } from "./utils.js";
 import { state } from "./state.js";
-import { goHome, goRelated, goAlbums, goFavorites, goSearch } from "./views.js";
+import { goHome, goRelated, goAlbums, goFavorites, goSearch, goProfile } from "./views.js";
 import { playNext, playPrev, togglePlayPause } from "./island.js";
 
 const appEl = $("#app");
@@ -15,7 +15,7 @@ const railEl = $("#rail-toggle");
 /* ── Navegação ──────────────────────────────────────── */
 document.querySelectorAll(".nav-item").forEach((el) =>
   el.addEventListener("click", () => ({
-    home: goHome, related: goRelated, albums: goAlbums, favorites: goFavorites,
+    home: goHome, related: goRelated, albums: goAlbums, favorites: goFavorites, profile: goProfile,
   })[el.dataset.view]())
 );
 
@@ -75,6 +75,16 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "n") playNext();
   if (e.key === "p") playPrev();
 });
+
+/* ── Rodapé da sidebar: versão (IPC do Electron) ────── */
+const versionEl = $("#rail-version");
+const rpc = window.cmusicRPC || null;
+if (rpc && versionEl) {
+  rpc.onVersion?.((v) => { if (v) versionEl.textContent = `v${v}`; });
+} else if (versionEl) {
+  versionEl.style.opacity = "0.5";
+  versionEl.textContent = "web";
+}
 
 /* ── Boot ───────────────────────────────────────────── */
 goHome();

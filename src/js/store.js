@@ -1,4 +1,4 @@
-/* cMusic — histórico e favoritas locais (localStorage) */
+/* cMusic — histórico, favoritas e estatísticas (localStorage) */
 import { toast } from "./utils.js";
 
 /* ── Histórico ──────────────────────────────────────── */
@@ -10,6 +10,56 @@ function sanThumb(t) {
   return t;
 }
 
+const PLAYS_KEY = "cmusic_plays";
+const LISTEN_KEY = "cmusic_listen_ms";
+
+/* conta uma execução da faixa (chamado pelo pushHistory no playAt) */
+function addPlay(t) {
+  try {
+    const plays = JSON.parse(localStorage.getItem(PLAYS_KEY) || "{}");
+    const cur = plays[t.videoId] || { n: 0 };
+    cur.n += 1;
+    cur.track = {
+      videoId: t.videoId,
+      title: t.title,
+      artist: t.artist,
+      album: t.album || "",
+      duration: t.duration || "",
+      thumbnail: t.thumbnail || `https://i.ytimg.com/vi/${t.videoId}/hqdefault.jpg`,
+    };
+    plays[t.videoId] = cur;
+    localStorage.setItem(PLAYS_KEY, JSON.stringify(plays));
+  } catch (e) { /* ignore */ }
+}
+
+/* ── Perfil: tempo real de escuta (ticks do island) ─── */
+export function addListen(ms) {
+  try {
+    localStorage.setItem(LISTEN_KEY, String(getListenMs() + ms));
+  } catch (e) { /* ignore */ }
+}
+
+export function getListenMs() {
+  return +localStorage.getItem(LISTEN_KEY) || 0;
+}
+
+/* top de faixas mais tocadas: [{ n, track }] */
+export function getTopPlays(n = 6) {
+  try {
+    const plays = JSON.parse(localStorage.getItem(PLAYS_KEY) || "{}");
+    return Object.values(plays)
+      .filter((x) => x && x.n && x.track)
+      .sort((a, b) => b.n - a.n)
+      .slice(0, n);
+  } catch (e) { return []; }
+}
+
+export function resetStats() {
+  localStorage.removeItem(PLAYS_KEY);
+  localStorage.removeItem(LISTEN_KEY);
+  toast("Estatísticas zeradas");
+}
+
 export function pushHistory(t) {
   try {
     let hist = JSON.parse(localStorage.getItem("cmusic_history") || "[]");
@@ -18,6 +68,7 @@ export function pushHistory(t) {
     localStorage.setItem("cmusic_history", JSON.stringify(hist.slice(0, 50)));
     localStorage.setItem("cmusic_last", t.videoId);
   } catch (e) { /* ignore */ }
+  addPlay(t);
 }
 
 export function getHistory() {

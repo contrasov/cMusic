@@ -6,6 +6,13 @@ export function fmtTime(sec) {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 }
 
+/* tempo de escuta acumulado (ms) → "1 h 20 min" */
+export function fmtListen(ms) {
+  const min = Math.max(0, Math.floor(ms / 60000));
+  if (min < 60) return `${min} min`;
+  return `${Math.floor(min / 60)} h ${min % 60} min`;
+}
+
 let toastTimer = null;
 
 export function toast(msg) {

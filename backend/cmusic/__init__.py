@@ -25,6 +25,13 @@ def create_app() -> FastAPI:
     app.include_router(explore.router)
     app.include_router(collection.router)
 
+    @app.middleware("http")
+    async def cache_control(_req, call_next):
+        """Força revalidação (no-cache + ETag): nunca serve JS/CSS antigo após update."""
+        resp = await call_next(_req)
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
     @app.get("/api/health")
     def health():
         return {"status": "ok", "app": "cMusic"}

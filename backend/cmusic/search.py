@@ -53,21 +53,49 @@ def _song_search_fallback(q: str, limit: int = 20):
     return [t for t in out if t["videoId"]]
 
 
+def _playlist_search(q: str, limit: int = 10):
+    """Playlists (user/community) do catálogo YT Music."""
+    out = []
+    for r in ytm.search(q, filter="playlists", limit=limit) or []:
+        pid = r.get("playlistId") or r.get("browseId") or ""
+        if not pid:
+            continue
+        out.append({
+            "id": pid,
+            "title": r.get("title", "Desconhecido"),
+            "artist": artists_of(r),
+            "year": r.get("year", ""),
+            "type": "playlist",
+            "thumbnail": thumb_of(r.get("thumbnails")),
+        })
+    return out
+
+
 @router.get("/search")
-def search(q: str):
-    """Busca músicas + álbuns; cai para yt-dlp quando a API falha."""
+def search(
+    q: str,
+    songs_lim: int = 20,
+    albums_lim: int = 10,
+    playlists_lim: int = 10,
+):
+    """Busca músicas + álbuns + playlists; cai para yt-dlp quando a API falha."""
     if not q.strip():
-        return {"songs": [], "albums": []}
+        return {"songs": [], "albums": [], "playlists": []}
     try:
-        songs = _song_search(q)
+        songs = _song_search(q, min(songs_lim, 50))
         try:
-            albums = _album_search(q)
+            albums = _album_search(q, min(albums_lim, 25))
         except Exception as e:
             print(f"[search] álbum search falhou ({e})", file=sys.stderr)
             albums = []
+        try:
+            playlists = _playlist_search(q, min(playlists_lim, 25))
+        except Exception as e:
+            print(f"[search] playlist search falhou ({e})", file=sys.stderr)
+            playlists = []
         if not songs:
             songs = _song_search_fallback(q)
-        return {"songs": songs, "albums": albums}
+        return {"songs": songs, "albums": albums, "playlists": playlists}
     except Exception as e:
         print(f"[search] ytmusicapi falhou ({e}); usando yt-dlp", file=sys.stderr)
-        return {"songs": _song_search_fallback(q), "albums": []}
+        return {"songs": _song_search_fallback(q), "albums": [], "playlists": []}

@@ -1,8 +1,9 @@
 /* cMusic — Dynamic Island: estado de loading, controles e áudio */
 import { state } from "./state.js";
 import { $, fmtTime, paintRange, toast } from "./utils.js";
-import { pushHistory, isFaved, toggleFav } from "./store.js";
+import { pushHistory, isFaved, toggleFav, addListen } from "./store.js";
 import { resolveStream } from "./api.js";
+import { maybeFillQueue } from "./player.js";
 
 const audio = $("#audio");
 const islandEl = $("#island");
@@ -66,6 +67,7 @@ export async function playAt(index) {
   islandEl.classList.remove("hidden"); // island aparece só com música
   timeCur.textContent = "0:00";
   timeTotal.textContent = "--:--";
+  maybeFillQueue(); // mix infinito: ao passar da metade, enche a fila
   try {
     const info = await resolveStream(t.videoId);
     if (state.loadingId !== t.videoId) return;
@@ -176,6 +178,11 @@ audio.addEventListener("ended", () => {
   if (state.repeat === "one") { audio.currentTime = 0; audio.play(); }
   else { mprisState(false); playNext(); }
 });
+
+/* perfil: contagem de tempo real de escuta (tick seguro a cada 10s) */
+setInterval(() => {
+  if (!audio.paused && audio.src && !audio.ended) addListen(10000);
+}, 10000);
 audio.addEventListener("volumechange", () => {
   volumebar.value = audio.volume * 100;
   paintRange(volumebar);

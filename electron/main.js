@@ -136,6 +136,9 @@ function createWindow() {
   });
 
   win.loadURL(`${BASE}/`);
+  win.webContents.on("did-finish-load", () => {
+    if (win) win.webContents.send("app-version", app.getVersion());
+  });
   win.on("closed", () => (win = null));
 }
 

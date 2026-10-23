@@ -37,11 +37,12 @@ def explore_home():
 
 
 @router.get("/related/{video_id}")
-def related(video_id: str):
+def related(video_id: str, limit: int = 20):
     """Rádio/similares de um vídeo (get_watch_playlist)."""
+    limit = max(10, min(limit, 100))
     try:
-        wp = ytm.get_watch_playlist(video_id, limit=25) or {}
+        wp = ytm.get_watch_playlist(video_id, limit=limit + 5) or {}
     except Exception as e:
         print(f"[related] watch playlist falhou ({e})", file=sys.stderr)
         return []
-    return tracks_of(wp.get("tracks"), limit=20)
+    return tracks_of(wp.get("tracks"), limit=limit)

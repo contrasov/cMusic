@@ -94,10 +94,13 @@ export function trackList(tracks) {
 }
 
 export function searchTabsHTML(searchTab) {
+  const tab = (id, label) =>
+    `<button class="stab ${searchTab === id ? "on" : ""}" data-tab="${id}">${label}</button>`;
   return `
     <div class="stabs">
-      <button class="stab ${searchTab === "songs" ? "on" : ""}" data-tab="songs">Músicas</button>
-      <button class="stab ${searchTab === "albums" ? "on" : ""}" data-tab="albums">Álbuns</button>
+      ${tab("songs", "Músicas")}
+      ${tab("albums", "Álbuns")}
+      ${tab("playlists", "Playlists")}
     </div>`;
 }
 
