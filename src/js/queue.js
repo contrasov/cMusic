@@ -22,6 +22,7 @@ export function renderQueue() {
   queueList.innerHTML = state.queue.map((t, i) => trackHTML(t, true, i)).join("");
   updatePlayingMark();
   syncQueueHeader();
+  document.dispatchEvent(new Event("cmusic-queue-changed"));
 }
 
 function syncQueueHeader() {

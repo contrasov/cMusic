@@ -24,7 +24,8 @@ def _collection_payload(coll, ctype):
 @router.get("/album/{coll_id}")
 def album(coll_id: str):
     """Álbuns (MPREb/VL), playlists (PL/RDCLAK) e rádios."""
-    if coll_id.startswith("MPREb") or coll_id.startswith("VL"):
+    if (coll_id.startswith("MPREb") or coll_id.startswith("VL")
+            or coll_id.startswith("OLAK5uy")):
         a = ytm.get_album(coll_id.removeprefix("VL"))
         tracks = [t for t in (track_of(x) for x in a.get("tracks", []) or []) if t]
         return _collection_payload(

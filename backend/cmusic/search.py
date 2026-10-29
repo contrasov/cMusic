@@ -5,7 +5,7 @@ import yt_dlp
 from fastapi import APIRouter
 
 from .client import ytm
-from .tracks import artists_of, track_of, thumb_of
+from .tracks import artists_of, track_of, thumb_of, upscale_thumb
 
 router = APIRouter(prefix="/api")
 
@@ -48,7 +48,7 @@ def _song_search_fallback(q: str, limit: int = 20):
             "artist": e.get("uploader", "Desconhecido"),
             "duration": f"{int(dur) // 60}:{int(dur) % 60:02d}" if dur else "",
             "album": "",
-            "thumbnail": (e.get("thumbnails") or [{}])[-1].get("url", ""),
+            "thumbnail": upscale_thumb((e.get("thumbnails") or [{}])[-1].get("url", "")),
         })
     return [t for t in out if t["videoId"]]
 

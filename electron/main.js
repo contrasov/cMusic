@@ -116,8 +116,8 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1160,
     height: 740,
-    minWidth: 900,
-    minHeight: 560,
+    minWidth: 320,
+    minHeight: 220,
     title: "cMusic",
     icon: path.join(ROOT, "assets", "icon.png"),
     backgroundColor: "#000000",

@@ -1,10 +1,10 @@
 /* cMusic — histórico, favoritas e estatísticas (localStorage) */
-import { toast } from "./utils.js";
+import { toast, hqThumb } from "./utils.js";
 
 /* ── Histórico ──────────────────────────────────────── */
-/* migração: capas salvas Antes do fix (sqdefault 404 / vazias) -> hqdefault */
+/* migração: capas salvas Antes do fix (sqdefault 404 / vazias) -> hq/sd */
 function sanThumb(t) {
-  if (t && t.videoId && (!t.thumbnail || /\/vi\/[^/]+\/sqdefault\.jpg/.test(t.thumbnail))) {
+  if (t && t.videoId && (!t.thumbnail || /\/vi\/[^/]+\/(sq|hq)default\.jpg/.test(t.thumbnail))) {
     t.thumbnail = `https://i.ytimg.com/vi/${t.videoId}/hqdefault.jpg`;
   }
   return t;
@@ -25,7 +25,7 @@ function addPlay(t) {
       artist: t.artist,
       album: t.album || "",
       duration: t.duration || "",
-      thumbnail: t.thumbnail || `https://i.ytimg.com/vi/${t.videoId}/hqdefault.jpg`,
+      thumbnail: t.thumbnail || (t.videoId ? hqThumb(`https://i.ytimg.com/vi/${t.videoId}/hqdefault.jpg`) : ""),
     };
     plays[t.videoId] = cur;
     localStorage.setItem(PLAYS_KEY, JSON.stringify(plays));
@@ -58,6 +58,87 @@ export function resetStats() {
   localStorage.removeItem(PLAYS_KEY);
   localStorage.removeItem(LISTEN_KEY);
   toast("Estatísticas zeradas");
+}
+
+/* ── Artistas mais ouvidos (agrega plays por artista) ── */
+export function getTopArtists(n = 3) {
+  try {
+    const plays = JSON.parse(localStorage.getItem(PLAYS_KEY) || "{}");
+    const byArtist = {};
+    for (const { n: count, track } of Object.values(plays)) {
+      if (!count || !track) continue;
+      // "A, B" (múltiplos artistas): conta para o primeiro
+      const name = (track.artist || "").split(",")[0].trim();
+      if (!name || name === "Desconhecido") continue;
+      byArtist[name] = (byArtist[name] || 0) + count;
+    }
+    return Object.entries(byArtist)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+      .map(([name]) => name);
+  } catch (e) { return []; }
+}
+
+/* ── Playlists locais (sem login) ───────────────────── */
+const PLS_KEY = "cmusic_playlists";
+
+function loadPlaylists() {
+  try { return JSON.parse(localStorage.getItem(PLS_KEY) || "[]"); }
+  catch (e) { return []; }
+}
+
+function savePlaylists(list) {
+  localStorage.setItem(PLS_KEY, JSON.stringify(list));
+}
+
+export function getPlaylists() {
+  return loadPlaylists();
+}
+
+export function getPlaylist(id) {
+  return loadPlaylists().find((p) => p.id === id) || null;
+}
+
+export function createPlaylist(name) {
+  const list = loadPlaylists();
+  const pl = { id: `pl_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, name, tracks: [], createdAt: Date.now() };
+  list.unshift(pl);
+  savePlaylists(list);
+  return pl;
+}
+
+export function renamePlaylist(id, name) {
+  const list = loadPlaylists();
+  const pl = list.find((p) => p.id === id);
+  if (pl) { pl.name = name; savePlaylists(list); }
+  return pl;
+}
+
+export function deletePlaylist(id) {
+  savePlaylists(loadPlaylists().filter((p) => p.id !== id));
+}
+
+/** retorna true se inseriu (faixa nova), false se já existia */
+export function addToPlaylist(id, t) {
+  const list = loadPlaylists();
+  const pl = list.find((p) => p.id === id);
+  if (!pl) return false;
+  if (pl.tracks.some((x) => x.videoId === t.videoId)) return false;
+  pl.tracks.push({
+    videoId: t.videoId, title: t.title, artist: t.artist,
+    album: t.album || "", duration: t.duration || "",
+    thumbnail: t.thumbnail || (t.videoId ? hqThumb(`https://i.ytimg.com/vi/${t.videoId}/hqdefault.jpg`) : ""),
+  });
+  savePlaylists(list);
+  return true;
+}
+
+export function removeFromPlaylist(id, videoId) {
+  const list = loadPlaylists();
+  const pl = list.find((p) => p.id === id);
+  if (!pl) return;
+  pl.tracks = pl.tracks.filter((x) => x.videoId !== videoId);
+  savePlaylists(list);
 }
 
 export function pushHistory(t) {

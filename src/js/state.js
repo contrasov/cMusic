@@ -9,6 +9,10 @@ export const state = {
   loadingId: null,
   lastPlayed: localStorage.getItem("cmusic_last") || null,
   collectionsCache: null,
+  recsPersonalized: false, // recomendações vieram dos artistas que você escuta?
+  homeCache: null,         // { songs, collections, personalized } — evita recarregar a home
+  homeRefreshing: false,   // refresh em segundo plano em andamento
+  plSuggest: null,         // { plId, items, limit, seed } — sugestões pra playlist aberta
   currentViewData: [],
   searchCache: null,
   searchTab: "songs",

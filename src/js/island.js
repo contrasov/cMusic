@@ -1,6 +1,6 @@
 /* cMusic — Dynamic Island: estado de loading, controles e áudio */
 import { state } from "./state.js";
-import { $, fmtTime, paintRange, toast } from "./utils.js";
+import { $, fmtTime, paintRange, toast, hqThumb } from "./utils.js";
 import { pushHistory, isFaved, toggleFav, addListen } from "./store.js";
 import { resolveStream } from "./api.js";
 import { maybeFillQueue } from "./player.js";
@@ -131,8 +131,9 @@ export function resetIsland() {
 }
 
 function setNpCover(t) {
-  if (t.thumbnail) {
-    npThumb.src = t.thumbnail;
+  const url = hqThumb(t.thumbnail);
+  if (url) {
+    npThumb.src = url;
     npThumb.classList.remove("noimg");
     npFallback.classList.add("hidden");
   } else {
@@ -164,10 +165,15 @@ export function syncFavButton() {
 function setPlayingUI(playing) {
   iconPlay.classList.toggle("hidden", playing);
   iconPause.classList.toggle("hidden", !playing);
+  document.dispatchEvent(new CustomEvent("cmusic-playstate", {
+    detail: { playing },
+  }));
 }
 
 /* ── Wiring dos controles ───────────────────────────── */
 btnPlay.addEventListener("click", togglePlayPause);
+
+export const audioEl = audio;
 
 audio.addEventListener("play", () => { setPlayingUI(true); setIslandLoading(false); mprisState(true); });
 audio.addEventListener("playing", () => setIslandLoading(false));

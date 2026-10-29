@@ -13,6 +13,21 @@ export function fmtListen(ms) {
   return `${Math.floor(min / 60)} h ${min % 60} min`;
 }
 
+/* pede a maior variante da mesma imagem na CDN do YT (capa nítida) */
+export function hqThumb(url) {
+  if (!url) return url;
+  if (url.includes("googleusercontent")) {
+    if (url.includes("=") && /=(s|w)\d/.test(url.slice(url.lastIndexOf("=")))) {
+      if (/=s\d+/.test(url)) return url.replace(/=s\d+[^/]*$/, "=s576");
+      return url.replace(/=w\d+-h\d+-[^/]*$/, "=w544-h544-l100-rj");
+    }
+    return url;
+  }
+  if (url.includes("/sqdefault.jpg")) return url.replace("/sqdefault.jpg", "/sddefault.jpg");
+  if (url.includes("/hqdefault.jpg")) return url.replace("/hqdefault.jpg", "/sddefault.jpg");
+  return url;
+}
+
 let toastTimer = null;
 
 export function toast(msg) {

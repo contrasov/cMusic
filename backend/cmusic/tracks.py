@@ -1,14 +1,43 @@
-"""Mapeamento comum de tracks (YTMusic dicts -> JSON estável)."""
+import re
+
 from .client import ytm
+
+
+_HQ_DASH = re.compile(r"=w\d+-h\d+-[^/]*$")
+_HQ_S = re.compile(r"=s\d+[^/]*$")
+_HQ_IMG = re.compile(r"(youtube\.com|ytimg\.com)/vi/[A-Za-z0-9_-]+/")
+
+
+def upscale_thumb(url: str) -> str:
+    """Reescreve a URL p/ pedir a maior variante da mesma imagem.
+
+    yt3.googleusercontent aceita qualquer w/h no sufixo (=wNNN-hNNN-...).
+    Capas dos charts vêm com =sNNN e muitas usam =wNNN-hNNN direto.
+    Em i.ytimg.com, sddefault.jpg (640) é maior que hqdefault.jpg (480)
+    e existe para praticamente todo vídeo."""
+    if not url:
+        return url
+    if "googleusercontent" in url:
+        if "=" not in url:
+            return url
+        if _HQ_S.search(url):
+            return _HQ_S.sub("=s576", url, count=1)
+        return _HQ_DASH.sub("=w544-h544-l100-rj", url, count=1)
+    if "/sqdefault.jpg" in url:
+        return url.replace("/sqdefault.jpg", "/sddefault.jpg", 1)
+    if "/hqdefault.jpg" in url:
+        return url.replace("/hqdefault.jpg", "/sddefault.jpg", 1)
+    return url
 
 
 def thumb_of(thumbs, fallback=""):
     if not thumbs:
         return fallback or ""
     try:
-        return max(thumbs, key=lambda t: t.get("width", 0))["url"]
+        best = max(thumbs, key=lambda t: t.get("width", 0))["url"]
     except Exception:
-        return thumbs[-1].get("url", fallback)
+        best = thumbs[-1].get("url", fallback)
+    return upscale_thumb(best)
 
 
 def artists_of(r):
@@ -31,8 +60,8 @@ def dur_of(r):
 
 def _thumb_fallback(video_id):
     """Capa determinística quando o YT não manda thumbnails.
-    hqdefault.jpg existe para todo videoId válido (sqdefault não)."""
-    return f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg" if video_id else ""
+    sddefault existe para (quase) todo videoId válido."""
+    return upscale_thumb(f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg") if video_id else ""
 
 
 def track_of(r):

@@ -28,3 +28,6 @@ setup.sh
 # Editor
 .vscode/
 .idea/
+
+# Referências locais (screenshots de design)
+ref/

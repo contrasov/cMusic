@@ -1,8 +1,10 @@
 /* cMusic — boot, sidebar, busca e atalhos */
 import { $ } from "./utils.js";
 import { state } from "./state.js";
-import { goHome, goRelated, goAlbums, goFavorites, goSearch, goProfile } from "./views.js";
+import { goHome, goRelated, goAlbums, goFavorites, goSearch, goProfile, goPlaylists } from "./views.js";
 import { playNext, playPrev, togglePlayPause } from "./island.js";
+import "./contextmenu.js";
+import "./npview.js";
 
 const appEl = $("#app");
 const searchForm = $("#search-form");
@@ -15,7 +17,8 @@ const railEl = $("#rail-toggle");
 /* ── Navegação ──────────────────────────────────────── */
 document.querySelectorAll(".nav-item").forEach((el) =>
   el.addEventListener("click", () => ({
-    home: goHome, related: goRelated, albums: goAlbums, favorites: goFavorites, profile: goProfile,
+    home: goHome, related: goRelated, albums: goAlbums,
+    playlists: goPlaylists, favorites: goFavorites, profile: goProfile,
   })[el.dataset.view]())
 );
 
