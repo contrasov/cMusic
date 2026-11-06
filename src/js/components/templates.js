@@ -1,6 +1,6 @@
 /* cMusic — templates de UI (render puro) */
 import { escape, hqThumb } from "../utils.js";
-import { isFaved } from "../store.js";
+import { isFaved, isAlbumFaved } from "../store.js";
 
 export const HEART_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54z"/></svg>`;
 export const ADD_ICON = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zM2 16h8v-2H2v2zm14-4v4h-4v2h4v4h2v-4h4v-2h-4v-4h-2z"/></svg>`;
@@ -53,13 +53,14 @@ export function cardHTML(c) {
     ? `<img src="${hqThumb(c.thumbnail)}" alt="" loading="lazy" />`
     : `<div class="cover-fallback">♪</div>`;
   return `
-    <div class="card" data-id="${c.id}">
+    <div class="card" data-id="${c.id}" data-title="${escape(c.title)}" data-artist="${escape(c.artist)}" data-type="${c.type || "playlist"}" data-year="${escape(c.year || "")}" data-thumbnail="${escape(c.thumbnail || "")}">
       <div class="card-art">
         <div class="vinyl-disc"><span></span></div>
         ${art}
       </div>
       <div class="card-title">${escape(c.title)}</div>
       <div class="card-sub">${type} · ${escape(c.artist)}</div>
+      ${c.type === "album" ? `<button class="album-fav ${isAlbumFaved(c.id) ? "faved" : ""}" title="Salvar álbum" aria-label="Salvar álbum">${HEART_ICON}</button>` : ""}
     </div>`;
 }
 
@@ -81,17 +82,21 @@ export function carousel(title, tracks) {
           <button title="Próximas">›</button>
         </div>
       </div>
-      <div class="carousel">
+      <div class="carousel desktop-song-carousel">
         ${chunk(tracks, 2).map((pair) =>
           `<div class="car-col">${pair.map(songCardHTML).join("")}</div>`).join("")}
+      </div>
+      <div class="carousel mobile-track-carousel">
+        ${chunk(tracks, 3).map((page) =>
+          `<ul class="mobile-track-page track-list">${page.map((track) => trackHTML(track, false)).join("")}</ul>`).join("")}
       </div>
     </div>`;
 }
 
-export function cardsSection(title, collections) {
+export function cardsSection(title, collections, horizontal = false) {
   if (!collections || !collections.length) return "";
   return `<h2 class="section">${escape(title)}</h2>
-    <div class="card-grid">${collections.map(cardHTML).join("")}</div>`;
+    <div class="card-grid${horizontal ? " card-carousel" : ""}">${collections.map(cardHTML).join("")}</div>`;
 }
 
 export function trackList(tracks) {

@@ -171,6 +171,39 @@ export function isFaved(vid) {
   return loadFavorites().some((x) => x.videoId === vid);
 }
 
+const ALBUM_FAVS_KEY = "cmusic_album_favs";
+
+export function loadAlbumFavorites() {
+  try { return JSON.parse(localStorage.getItem(ALBUM_FAVS_KEY) || "[]"); }
+  catch (e) { return []; }
+}
+
+export function isAlbumFaved(id) {
+  return loadAlbumFavorites().some((x) => x.id === id);
+}
+
+export function toggleAlbumFav(album) {
+  if (!album?.id) return false;
+  const list = loadAlbumFavorites();
+  const index = list.findIndex((x) => x.id === album.id);
+  if (index >= 0) {
+    list.splice(index, 1);
+    toast("Álbum removido dos favoritos");
+  } else {
+    list.unshift({
+      id: album.id,
+      title: album.title || "Álbum",
+      artist: album.artist || "",
+      type: album.type || "album",
+      year: album.year || "",
+      thumbnail: album.thumbnail || "",
+    });
+    toast("Álbum salvo nos favoritos");
+  }
+  localStorage.setItem(ALBUM_FAVS_KEY, JSON.stringify(list));
+  return index < 0;
+}
+
 /** t = track completa (opcional); cai para o DOM quando null */
 export function toggleFav(t, videoId) {
   const vid = videoId || t.videoId;

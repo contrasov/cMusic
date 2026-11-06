@@ -6,10 +6,10 @@ import {
 } from "./api.js";
 import {
   carousel, cardsSection, trackList, searchTabsHTML, lineToTrack,
-  cardHTML, coverHTML, X_ICON, ADD_ICON,
+  cardHTML, coverHTML, X_ICON, ADD_ICON, HEART_ICON,
 } from "./components/templates.js";
 import {
-  getHistory, loadFavorites, toggleFav, getTopPlays, getTopArtists,
+  getHistory, loadFavorites, toggleFav, loadAlbumFavorites, toggleAlbumFav, isAlbumFaved, getTopPlays, getTopArtists,
   getListenMs, resetStats,
   getPlaylists, getPlaylist, createPlaylist, addToPlaylist,
   deletePlaylist, removeFromPlaylist, renamePlaylist,
@@ -149,8 +149,16 @@ function currentHomeHTML({ hist, songs, collections, personalized, popular }) {
         <p>Já foram <span class="greet-hrs">${fmtListen(getListenMs())}</span> de música</p>
       </div>
       ${carousel("Recentes", hist)}
+      <button class="home-related-card" type="button">
+        <span class="home-related-icon" aria-hidden="true">♫</span>
+        <span class="home-related-copy">
+          <strong>Similares a seu gosto musical</strong>
+          <small>Encontre músicas parecidas com o que você está ouvindo</small>
+        </span>
+        <span class="home-related-arrow" aria-hidden="true">›</span>
+      </button>
       ${carousel("Para você", songs.slice(0, 12))}
-      ${cardsSection(personalized ? "Baseado no que você escuta" : "Álbuns recomendados", collections)}
+      ${cardsSection(personalized ? "Baseado no que você escuta" : "Álbuns recomendados", collections, personalized)}
       ${popular?.length ? cardsSection("Populares do momento", popular) : ""}
     </div>`;
 }
@@ -358,9 +366,11 @@ export async function goFavorites() {
   setNav("favorites");
   setHeader("Favoritas");
   const data = loadFavorites();
+  const albums = loadAlbumFavorites();
   state.currentViewData = data;
-  viewEl.innerHTML = trackList(data) +
-    (data.length ? "" : `<div class="empty">Vazia — toque algo e aperte o ♥<br><span class="empty-sub">Salvas neste dispositivo, sem login.</span></div>`);
+  viewEl.innerHTML = (albums.length ? cardsSection("Álbuns", albums) : "") +
+    (data.length ? `<h2 class="section">Músicas</h2>${trackList(data)}` : "") +
+    (data.length || albums.length ? "" : `<div class="empty">Vazia — toque algo e aperte o ♥<br><span class="empty-sub">Salvas neste dispositivo, sem login.</span></div>`);
   animateView();
   updatePlayingMark();
 }
@@ -630,6 +640,7 @@ export async function goCollection(id) {
   animateView();
   try {
     const c = await album(id);
+    const albumFav = { id: c.id || id, title: c.title, artist: c.artist, type: c.type, year: c.year, thumbnail: c.thumbnail };
     const cover = hqThumb(c.thumbnail)
       ? `<img src="${hqThumb(c.thumbnail)}" alt="" />`
       : `<div class="cover-fallback" style="aspect-ratio:1">♪</div>`;
@@ -641,6 +652,7 @@ export async function goCollection(id) {
           <div id="coll-title">${escape(c.title)}</div>
           <div id="coll-sub">${escape(c.artist)}</div>
           <div id="coll-actions">
+            ${c.type === "album" ? `<button class="btn-ghost album-fav-detail ${isAlbumFaved(albumFav.id) ? "faved" : ""}" id="btn-fav-album">${HEART_ICON} ${isAlbumFaved(albumFav.id) ? "Salvo" : "Salvar álbum"}</button>` : ""}
             <button class="btn-accent" id="btn-play-coll">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
               Tocar
@@ -656,6 +668,12 @@ export async function goCollection(id) {
     state.currentViewData = c.tracks;
     animateView();
     updatePlayingMark();
+    const favAlbumBtn = $("#btn-fav-album");
+    if (favAlbumBtn) favAlbumBtn.onclick = () => {
+      const saved = toggleAlbumFav(albumFav);
+      favAlbumBtn.classList.toggle("faved", saved);
+      favAlbumBtn.innerHTML = `${HEART_ICON} ${saved ? "Salvo" : "Salvar álbum"}`;
+    };
     $("#btn-play-coll").onclick = () => { replaceQueue(c.tracks); playAt(0); };
     $("#btn-enq-coll").onclick = () => {
       c.tracks.forEach((tr) => enqueue(tr));
@@ -668,6 +686,10 @@ export async function goCollection(id) {
 
 /* ── Delegação global de cliques da view ────────────── */
 viewEl.addEventListener("click", (e) => {
+  if (e.target.closest(".home-related-card")) {
+    goRelated();
+    return;
+  }
   const lm = e.target.closest(".load-more");
   if (lm) {
     if (lm.dataset.kind === "related") loadMoreRelated(lm);
@@ -678,7 +700,9 @@ viewEl.addEventListener("click", (e) => {
   const carBtn = e.target.closest(".car-nav button");
   if (carBtn) {
     const wrap = carBtn.closest(".carousel-wrap");
-    const car = wrap.querySelector(".carousel");
+    const car = window.matchMedia("(max-width: 720px)").matches
+      ? wrap.querySelector(".mobile-track-carousel")
+      : wrap.querySelector(".desktop-song-carousel");
     car.scrollBy({ left: car.clientWidth * (carBtn.textContent.trim() === "‹" ? -1 : 1) });
     return;
   }
@@ -694,6 +718,24 @@ viewEl.addEventListener("click", (e) => {
   if (heart) {
     const container = heart.closest("[data-id]");
     if (container) toggleFav(null, container.dataset.id);
+    return;
+  }
+  const albumHeart = e.target.closest(".album-fav");
+  if (albumHeart) {
+    const card = albumHeart.closest(".card");
+    if (card) {
+      const albumData = {
+        id: card.dataset.id,
+        title: card.dataset.title,
+        artist: card.dataset.artist,
+        type: card.dataset.type,
+        year: card.dataset.year,
+        thumbnail: card.dataset.thumbnail,
+      };
+      const saved = toggleAlbumFav(albumData);
+      albumHeart.classList.toggle("faved", saved);
+      if (!saved && currentTop.fn === goFavorites) goFavorites();
+    }
     return;
   }
   const sc = e.target.closest(".song-card");

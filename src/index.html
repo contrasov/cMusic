@@ -22,10 +22,6 @@
           <svg class="nav-ic" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 3 4 9v12h5v-7h6v7h5V9z"/></svg>
           <span class="nav-label">Início</span>
         </button>
-        <button class="nav-item" data-view="related" title="Similares">
-          <svg class="nav-ic" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z" fill="currentColor" stroke="none"/></svg>
-          <span class="nav-label">Similares</span>
-        </button>
         <button class="nav-item" data-view="albums" title="Álbuns">
           <svg class="nav-ic" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2C6.5 2 2 5.6 2 10v4c0 4.4 4.5 8 10 8s10-3.6 10-8v-4c0-4.4-4.5-8-10-8m0 4.5A3.5 3.5 0 1 1 8.5 10 3.5 3.5 0 0 1 12 6.5"/></svg>
           <span class="nav-label">Álbuns</span>
@@ -61,6 +57,9 @@
           <div id="header-title">Início</div>
         </div>
         <div id="header-right">
+          <button id="btn-mobile-queue" class="mobile-queue-button" title="Abrir fila" aria-label="Abrir fila">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>
+          </button>
           <form id="search-form">
             <input id="search-input" type="search" placeholder="Buscar..." autocomplete="off" />
             <button type="submit" aria-label="Buscar">
@@ -95,7 +94,8 @@
 
   <!-- ══ Dynamic Island (só com música) ═══════════════ -->
   <footer id="island" class="hidden">
-    <audio id="audio" preload="auto"></audio>
+    <!-- Avoid prebuffering audio before playback is requested. -->
+    <audio id="audio" preload="metadata"></audio>
 
     <div id="np-info">
       <img id="np-thumb" src="" alt="" />

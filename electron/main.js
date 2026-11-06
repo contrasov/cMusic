@@ -126,6 +126,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // This UI has no editable text fields that need Chromium's spellchecker.
+      spellcheck: false,
       preload: path.join(__dirname, "preload.js"),
     },
   });

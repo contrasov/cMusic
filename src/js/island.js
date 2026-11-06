@@ -67,6 +67,7 @@ export async function playAt(index) {
   islandEl.classList.remove("hidden"); // island aparece só com música
   timeCur.textContent = "0:00";
   timeTotal.textContent = "--:--";
+  islandEl.style.setProperty("--player-progress", "0%");
   maybeFillQueue(); // mix infinito: ao passar da metade, enche a fila
   try {
     const info = await resolveStream(t.videoId);
@@ -121,6 +122,7 @@ export function resetIsland() {
   state.loadingId = null;
   audio.pause();
   audio.removeAttribute("src");
+  islandEl.style.setProperty("--player-progress", "0%");
   setIslandLoading(false);
   mprisState(false);
   npTitle.textContent = "Nada tocando";
@@ -222,6 +224,7 @@ btnRepeat.addEventListener("click", () => {
 /* ── Seek / Volume ──────────────────────────────────── */
 audio.addEventListener("timeupdate", () => {
   if (state.seeking || !audio.duration) return;
+  islandEl.style.setProperty("--player-progress", `${(audio.currentTime / audio.duration) * 100}%`);
   seekbar.value = (audio.currentTime / audio.duration) * 100;
   paintRange(seekbar);
   timeCur.textContent = fmtTime(audio.currentTime);

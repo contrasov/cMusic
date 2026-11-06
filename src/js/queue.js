@@ -13,6 +13,24 @@ const btnQueue = $("#btn-queue");
 const btnQueueMin = $("#btn-queue-min");
 const btnClearQueue = $("#btn-clear-queue");
 const btnSaveQueue = $("#btn-save-queue");
+const btnMobileQueue = $("#btn-mobile-queue");
+
+function mobileLayout() { return window.matchMedia("(max-width: 720px)").matches; }
+
+function openQueue() {
+  if (!mobileLayout() && (state.current < 0 || !state.queue[state.current])) return;
+  if (mobileLayout()) {
+    appEl.classList.add("mobile-queue-open");
+    appEl.classList.remove("qc-hidden");
+  } else appEl.classList.remove("qc-hidden");
+  syncQueueHeader();
+}
+
+function closeQueue() {
+  appEl.classList.remove("mobile-queue-open");
+  appEl.classList.add("qc-hidden");
+  syncQueueHeader();
+}
 
 export function replaceQueue(tracks) {
   state.queue = [...tracks];
@@ -28,9 +46,14 @@ export function renderQueue() {
 }
 
 function syncQueueHeader() {
+  const hasCurrentTrack = state.current >= 0 && !!state.queue[state.current];
+  appEl.classList.toggle("queue-closed", !hasCurrentTrack);
   btnQueue.classList.toggle("on", appEl.classList.contains("qc-hidden"));
   btnSaveQueue.disabled = !state.queue.length;
 }
+
+document.addEventListener("cmusic-playstate", syncQueueHeader);
+syncQueueHeader();
 
 export function enqueue(t) {
   state.queue.push(t);
@@ -62,14 +85,17 @@ queueList.addEventListener("click", (e) => {
 
 /* ── Minimizar / reabrir / limpar ───────────────────── */
 btnQueueMin.addEventListener("click", () => {
-  appEl.classList.add("qc-hidden");
-  syncQueueHeader();
+  closeQueue();
   toast("Fila oculta — botão no island reabre");
 });
 
 btnQueue.addEventListener("click", () => {
-  appEl.classList.remove("qc-hidden");
-  syncQueueHeader();
+  openQueue();
+});
+
+btnMobileQueue?.addEventListener("click", () => {
+  if (appEl.classList.contains("mobile-queue-open")) closeQueue();
+  else openQueue();
 });
 
 btnClearQueue.addEventListener("click", () => {
