@@ -3,7 +3,8 @@ import { state } from "./state.js";
 import { $, toast } from "./utils.js";
 import { trackHTML } from "./components/templates.js";
 import { playAt, updatePlayingMark, resetIsland } from "./island.js";
-import { toggleFav } from "./store.js";
+import { toggleFav, createPlaylist, addToPlaylist } from "./store.js";
+import { openPlaylistModal } from "./modal.js";
 
 const appEl = $("#app");
 const queueList = $("#queue-list");
@@ -11,6 +12,7 @@ const queueEmpty = $("#queue-empty");
 const btnQueue = $("#btn-queue");
 const btnQueueMin = $("#btn-queue-min");
 const btnClearQueue = $("#btn-clear-queue");
+const btnSaveQueue = $("#btn-save-queue");
 
 export function replaceQueue(tracks) {
   state.queue = [...tracks];
@@ -27,6 +29,7 @@ export function renderQueue() {
 
 function syncQueueHeader() {
   btnQueue.classList.toggle("on", appEl.classList.contains("qc-hidden"));
+  btnSaveQueue.disabled = !state.queue.length;
 }
 
 export function enqueue(t) {
@@ -74,6 +77,17 @@ btnClearQueue.addEventListener("click", () => {
   replaceQueue([]);
   resetIsland();
   updatePlayingMark();
+});
+
+btnSaveQueue.addEventListener("click", async () => {
+  if (!state.queue.length) return;
+  const tracks = [...state.queue];
+  const name = await openPlaylistModal({ mode: "create" });
+  if (!name) return;
+  const playlist = createPlaylist(name);
+  tracks.forEach((track) => addToPlaylist(playlist.id, track));
+  document.dispatchEvent(new Event("cmusic-playlists-changed"));
+  toast(`Fila salva como “${name}”`);
 });
 
 export { toggleFav };

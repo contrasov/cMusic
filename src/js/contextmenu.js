@@ -50,7 +50,13 @@ function itemHTML(id, label, opts = {}) {
 function trackAt(el) {
   const queueLi = el.closest("#queue-list .track");
   if (queueLi && queueLi.dataset.i != null) {
-    return { track: state.queue[+queueLi.dataset.i] };
+    const queueIndex = +queueLi.dataset.i;
+    return { track: state.queue[queueIndex], queueIndex };
+  }
+  const nowPlayingLi = el.closest("#npf-list .npf-track");
+  if (nowPlayingLi && nowPlayingLi.dataset.i != null) {
+    const queueIndex = +nowPlayingLi.dataset.i;
+    return { track: state.queue[queueIndex], queueIndex };
   }
   const container = el.closest("[data-id]");
   const vid = container?.dataset.id;
@@ -66,14 +72,17 @@ function trackAt(el) {
   return null;
 }
 
-function trackMenuHTML(t) {
+function trackMenuHTML(t, sourceQueueIndex = null) {
   const faved = isFaved(t.videoId);
-  const currentInQueue =
-    state.queue[state.current] && state.queue[state.current].videoId === t.videoId;
+  const queueIndex = Number.isInteger(sourceQueueIndex)
+    ? sourceQueueIndex
+    : state.queue.findIndex((item) => item.videoId === t.videoId);
+  const currentInQueue = queueIndex === state.current;
   return (
     itemHTML("now", "Tocar agora") +
     (currentInQueue ? "" : itemHTML("next", "Tocar a seguir")) +
-    (currentInQueue ? "" : itemHTML("end", "Adicionar ao final da fila")) +
+    (queueIndex >= 0 && state.queue.length > 1 ? itemHTML("end", "Mover para o final da fila")
+      : queueIndex < 0 ? itemHTML("end", "Adicionar ao final da fila") : "") +
     itemHTML("fav", faved ? "Remover dos favoritos" : "Favoritar") +
     itemHTML("pl", 'Adicionar à playlist <span class="ctx-arrow">▸</span>', { cls: "has-sub" })
   );
@@ -99,6 +108,22 @@ function insertInQueue(tracks, where) {
   const cur = Math.max(state.current, -1);
   if (where === "next") state.queue.splice(cur + 1, 0, ...tracks);
   else { state.queue.push(...tracks); }
+  renderQueue();
+}
+
+function moveQueuedTrack(index, where) {
+  if (index < 0 || index >= state.queue.length) return;
+  if (where === "next" && (index === state.current || index === state.current + 1)) return;
+  if (where === "end" && index === state.queue.length - 1) return;
+  const [track] = state.queue.splice(index, 1);
+  if (index === state.current && where === "end") {
+    state.queue.push(track);
+    state.current = state.queue.length - 1;
+  } else {
+    if (index < state.current) state.current--;
+    if (where === "next") state.queue.splice(Math.max(0, state.current + 1), 0, track);
+    else state.queue.push(track);
+  }
   renderQueue();
 }
 
@@ -136,13 +161,13 @@ function menuClick(e, ctx) {
   if (!item) return;
   const id = item.dataset.ctx;
   const arg = item.dataset.arg;
-  const { x, y } = ctx;
+  const { x, y, queueIndex } = ctx;
 
   if (ctx.type === "track") {
     const t = ctx.track;
     switch (id) {
-      case "back": show(x, y, trackMenuHTML(t), { type: "track", track: t }); return;
-      case "pl": show(x, y, playlistSubHTML(t), { type: "track", track: t }); return;
+      case "back": show(x, y, trackMenuHTML(t, queueIndex), { type: "track", track: t, queueIndex }); return;
+      case "pl": show(x, y, playlistSubHTML(t), { type: "track", track: t, queueIndex }); return;
       case "new-pl":
         close();
         openPlaylistModal({ mode: "create" }).then((name) => {
@@ -156,13 +181,36 @@ function menuClick(e, ctx) {
         document.dispatchEvent(new Event("cmusic-playlists-changed"));
         return;
       }
-      case "now": close(); playOrEnqueue(t); return;
+      case "now": {
+        close();
+        const index = Number.isInteger(queueIndex)
+          ? queueIndex
+          : state.queue.findIndex((item) => item.videoId === t.videoId);
+        if (index >= 0) playAt(index);
+        else playOrEnqueue(t);
+        return;
+      }
       case "next":
         close();
-        insertInQueue([t], "next");
+        {
+          const index = Number.isInteger(queueIndex)
+            ? queueIndex
+            : state.queue.findIndex((item) => item.videoId === t.videoId);
+          if (index >= 0) moveQueuedTrack(index, "next");
+          else insertInQueue([t], "next");
+        }
         toast(`“${t.title}” a seguir`);
         return;
-      case "end": close(); enqueue(t); return;
+      case "end": {
+        close();
+        const index = Number.isInteger(queueIndex)
+          ? queueIndex
+          : state.queue.findIndex((item) => item.videoId === t.videoId);
+        if (index >= 0) moveQueuedTrack(index, "end");
+        else enqueue(t);
+        toast(`“${t.title}” no fim da fila`);
+        return;
+      }
       case "fav": close(); toggleFav(t); return;
     }
   }
@@ -224,14 +272,14 @@ function localPlaylistMenuHTML(pl) {
 }
 
 /* ── API pública p/ uso em views (ex.: abrir via botão) ─ */
-export function openTrackMenu(t, x, y) {
-  show(x, y, trackMenuHTML(t), { type: "track", track: t });
+export function openTrackMenu(t, x, y, queueIndex = null) {
+  show(x, y, trackMenuHTML(t, queueIndex), { type: "track", track: t, queueIndex });
 }
 
 /* ── listener global de botão direito ────────────────── */
 document.addEventListener("contextmenu", (e) => {
   const cardEl = e.target.closest(".card");
-  const trackEl = e.target.closest(".track, .song-card");
+  const trackEl = e.target.closest(".track, .song-card, .npf-track");
   if (!cardEl && !trackEl) return;
   e.preventDefault();
   if (cardEl && !trackEl) {
@@ -250,7 +298,7 @@ document.addEventListener("contextmenu", (e) => {
     return;
   }
   const found = trackAt(e.target);
-  if (found) openTrackMenu(found.track, e.clientX, e.clientY);
+  if (found) openTrackMenu(found.track, e.clientX, e.clientY, found.queueIndex);
 });
 
 function currentTopPlaylist(plId) {

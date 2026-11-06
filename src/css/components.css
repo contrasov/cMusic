@@ -21,30 +21,19 @@
   font-weight: 800;
 }
 
-/* skeleton (shimmer) da home */
-.sk-shimmer {
+/* skeleton da home: apenas a silhueta das divisões */
+.home-skeleton { --home-sk: #292929; }
+.home-sk-section {
   position: relative;
   overflow: hidden;
-  background: #2b2b2b;
-  border-radius: 6px;
+  border-radius: 12px;
+  background: var(--home-sk);
+  animation: home-sk-pulse 1.5s ease-in-out infinite alternate;
 }
-.sk-shimmer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06) 45%, rgba(255, 255, 255, 0.11) 55%, transparent);
-  animation: sk-slide 1.3s ease infinite;
-}
-@keyframes sk-slide { to { transform: translateX(100%); } }
-.sk-line { display: block; height: 11px; }
-.sk-h2 { width: 190px; height: 16px; }
-.sk-greet1 { width: 300px; height: 24px; margin-bottom: 8px; }
-.sk-greet2 { width: 180px; height: 13px; }
-.sk-cover { width: 100%; aspect-ratio: 1; border-radius: 12px; }
-.sc-cover.sk-shimmer { border-radius: 10px; }
-.card.sk { cursor: default; }
-.card.sk .sk-line { margin-top: 8px; }
+.home-sk-greet { width: min(360px, 70%); height: 46px; margin: 2px 0 4px; }
+.home-sk-carousel { height: 142px; margin-top: 16px; }
+.home-sk-grid { height: 230px; margin-top: 24px; }
+@keyframes home-sk-pulse { to { opacity: .58; } }
 
 /* ── responsivo: carrossel e cards ──────────────────── */
 @media (max-width: 680px) {

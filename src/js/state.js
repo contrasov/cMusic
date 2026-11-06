@@ -11,6 +11,8 @@ export const state = {
   collectionsCache: null,
   recsPersonalized: false, // recomendações vieram dos artistas que você escuta?
   homeCache: null,         // { songs, collections, personalized } — evita recarregar a home
+  homePromise: null,       // requisição única compartilhada enquanto a home carrega
+  homeLastFetched: 0,      // controla o refresh silencioso (TTL de 5 min)
   homeRefreshing: false,   // refresh em segundo plano em andamento
   plSuggest: null,         // { plId, items, limit, seed } — sugestões pra playlist aberta
   currentViewData: [],

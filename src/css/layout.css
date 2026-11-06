@@ -288,6 +288,8 @@
   transition: color 0.15s, background 0.15s;
 }
 .q-action:hover { color: var(--text); background: var(--surface); }
+.q-action:disabled { opacity: 0.38; cursor: default; }
+.q-action:disabled:hover { color: var(--text-dim); background: none; }
 
 #queue .empty {
   font-size: 12px;

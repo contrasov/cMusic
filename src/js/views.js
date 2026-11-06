@@ -63,9 +63,10 @@ export function animateView() {
 }
 
 /* Álbuns recomendados: dos artistas mais ouvidos, com fallback p/ os →get_home */
-async function recommendedCollections(need = 12) {
+async function recommendedCollections(homeData = null) {
   const artists = getTopArtists(3);
   if (!artists.length) {
+    if (homeData) return { collections: homeData.collections || [], personalized: false };
     try {
       const data = await exploreHome();
       return { collections: data.collections, personalized: false };
@@ -78,7 +79,7 @@ async function recommendedCollections(need = 12) {
     if (data.collections?.length >= 4) return { collections: data.collections, personalized: true };
   } catch (e) { /* cai para o home */ }
   try {
-    const data = await exploreHome();
+    const data = homeData || await exploreHome();
     return { collections: data.collections, personalized: false };
   } catch (e) {
     return { collections: [], personalized: false };
@@ -99,9 +100,12 @@ async function profileSongs(fallbackSongs) {
 
 /* dado única da home (músicas p/ perfil + coleções) */
 async function fetchHomeData() {
+  const homePromise = exploreHome();
+  const recPromise = homePromise.then((data) =>
+    recommendedCollections(data).catch(() => ({ collections: data.collections || [], personalized: false })));
   const [data, rec, charts] = await Promise.all([
-    exploreHome(),
-    recommendedCollections().catch(() => ({ collections: [], personalized: false })),
+    homePromise,
+    recPromise,
     exploreCharts().catch(() => ({ collections: [] })),
   ]);
   const songs = await profileSongs(data.songs);
@@ -111,42 +115,29 @@ async function fetchHomeData() {
     : (data.collections || []).filter((c) => !ids.has(c.id)).slice(0, 12);
   return { songs, collections: rec.collections, personalized: rec.personalized, popular };
 }
+
+function loadHomeData() {
+  if (!state.homePromise) {
+    state.homePromise = fetchHomeData().then((data) => {
+      state.homeCache = data;
+      state.collectionsCache = data.collections;
+      state.recsPersonalized = data.personalized;
+      state.homeLastFetched = Date.now();
+      return data;
+    }).finally(() => { state.homePromise = null; });
+  }
+  return state.homePromise;
+}
 /* skeleton da home (shimmer) — só na primeira sessão */
 function homeSkeletonHTML() {
-  const skSong = (n) => `
-    <div class="car-col">${Array.from({ length: n }, () => `
-      <div class="song-card sk">
-        <div class="sc-cover sk-shimmer"></div>
-        <div class="sk-lines">
-          <div class="sk-line sk-shimmer" style="width:72%"></div>
-          <div class="sk-line sk-shimmer" style="width:46%"></div>
-        </div>
-      </div>`).join("")}</div>`;
-  const skRow = () => `
-    <div class="carousel-wrap">
-      <div class="carousel-head"><h2><span class="sk-line sk-shimmer sk-h2"></span></h2></div>
-      <div class="carousel">${skSong(2)}${skSong(2)}${skSong(2)}${skSong(2)}</div>
-    </div>`;
-  const skGrid = (n) => `
-    <h2 class="section"><span class="sk-line sk-shimmer sk-h2"></span></h2>
-    <div class="card-grid">
-      ${Array.from({ length: n }, () => `
-        <div class="card sk">
-          <div class="card-art"><div class="sk-cover sk-shimmer"></div></div>
-          <div class="sk-line sk-shimmer" style="width:64%"></div>
-          <div class="sk-line sk-shimmer" style="width:40%"></div>
-        </div>`).join("")}
-    </div>`;
+  const skSection = (kind) => `<div class="home-sk-section home-sk-${kind}"></div>`;
   return `
-    <div id="home-wrap" class="home-wrap">
-      <div class="home-greet">
-        <span class="sk-line sk-shimmer sk-greet1"></span>
-        <span class="sk-line sk-shimmer sk-greet2"></span>
-      </div>
-      ${skRow()}
-      ${skRow()}
-      ${skGrid(6)}
-      ${skGrid(6)}
+    <div id="home-wrap" class="home-wrap home-skeleton">
+      ${skSection("greet")}
+      ${skSection("carousel")}
+      ${skSection("carousel")}
+      ${skSection("grid")}
+      ${skSection("grid")}
     </div>`;
 }
 
@@ -185,12 +176,11 @@ function applyHome(data, withMotion) {
 /* refresh silencioso em segundo plano: atualiza o cache e, se a home está
  * visível, faz o swap com motion */
 async function refreshHomeBackground() {
-  if (state.homeRefreshing) return;
+  const cacheTtl = 5 * 60 * 1000;
+  if (state.homeRefreshing || Date.now() - state.homeLastFetched < cacheTtl) return;
   state.homeRefreshing = true;
   try {
-    state.homeCache = await fetchHomeData();
-    state.collectionsCache = state.homeCache.collections;
-    state.recsPersonalized = state.homeCache.personalized;
+    await loadHomeData();
     if (currentTop.fn !== goHome) return; // usuário saiu da home: só cache
     applyHome({ hist: getHistory().slice(0, 10), ...state.homeCache }, true);
   } catch (e) {
@@ -210,10 +200,7 @@ export function goHome() {
   if (!state.homeCache) {
     viewEl.innerHTML = homeSkeletonHTML();
     animateView();
-    fetchHomeData().then((homeData) => {
-      state.homeCache = homeData;
-      state.collectionsCache = homeData.collections;
-      state.recsPersonalized = homeData.personalized;
+    loadHomeData().then((homeData) => {
       if (currentTop.fn !== goHome) return;
       applyHome({ hist: getHistory().slice(0, 10), ...state.homeCache }, false);
     }).catch((e) => {
@@ -346,7 +333,9 @@ export async function goAlbums() {
   try {
     const rec = state.collectionsCache && state.collectionsCache.length
       ? { collections: state.collectionsCache, personalized: state.recsPersonalized }
-      : await recommendedCollections();
+      : state.homePromise
+        ? await state.homePromise.then((data) => ({ collections: data.collections, personalized: data.personalized }))
+        : await recommendedCollections();
     state.collectionsCache = rec.collections;
     state.recsPersonalized = rec.personalized;
     viewEl.innerHTML = cardsSection(

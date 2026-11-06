@@ -13,6 +13,7 @@ const ISL = {
 };
 let npSeeking = false;
 let dragIdx = -1;
+let lastAutoScrolledId = null;
 
 /* ícones */
 const IC = {
@@ -31,8 +32,12 @@ const cur = () => state.queue[state.current] || null;
 export function npOpen() {
   if (!cur()) return;
   render();
+  lastAutoScrolledId = null;
   root.classList.remove("hidden");
-  requestAnimationFrame(() => root.classList.add("open"));
+  requestAnimationFrame(() => {
+    root.classList.add("open");
+    syncAll();
+  });
   syncPlayIcon();
   paintRange($("#npf-seekbar"));
   paintRange($("#npf-vol"));
@@ -96,9 +101,8 @@ function render() {
 }
 
 function rowsHTML() {
-  const nowId = cur()?.videoId;
   return state.queue.map((t, i) => `
-    <li class="npf-track ${t.videoId === nowId ? "playing" : ""}" draggable="true"
+    <li class="npf-track ${i === state.current ? "playing" : ""}" draggable="true"
         data-i="${i}" data-id="${t.videoId}">
       <span class="npf-num">${i === state.current ? "♪" : i + 1}</span>
       ${hqThumb(t.thumbnail) ? `<img class="npf-thumb" src="${hqThumb(t.thumbnail)}" alt="" loading="lazy" onerror="this.removeAttribute('src'); this.classList.add('noimg');" />`
@@ -136,7 +140,19 @@ function syncAll() {
   /* fila reordenada: re-render preserva o drag */
   const list = $("#npf-list");
   if (list && dragIdx < 0) list.innerHTML = rowsHTML();
-  [...(list?.children || [])].forEach((li) => li.classList.toggle("playing", li.dataset.id === t.videoId));
+  [...(list?.children || [])].forEach((li) => li.classList.toggle("playing", +li.dataset.i === state.current));
+  const playingKey = `${state.current}:${t.videoId}`;
+  if (list && dragIdx < 0 && lastAutoScrolledId !== playingKey) {
+    const active = list.querySelector(`.npf-track[data-i="${state.current}"]`);
+    if (active) {
+      const top = active.offsetTop - list.offsetTop;
+      list.scrollTo({
+        top: Math.max(0, top - (list.clientHeight - active.offsetHeight) / 2),
+        behavior: lastAutoScrolledId === null ? "auto" : "smooth",
+      });
+    }
+    lastAutoScrolledId = playingKey;
+  }
 }
 
 /* ── Timeupdate próprio do overlay ──────────────────── */
